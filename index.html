@@ -404,7 +404,7 @@
             let target = emap[Math.floor(x / 12.5)][Math.floor(y / 12.5)]
             creatures.forEach(bot => {
                 if (bot.id == target) {
-                    botinfo.textContent = genom(bot.weights) + resists[bot.resists.indexOf(1)] + ".\n Последнее действие:" + bot.last + ".\n" + String(bot.energy)
+                    botinfo.textContent = genom(bot.weights) + resists[bot.resists.indexOf(1)] + ".\n Последнее действие:" + bot.last + ".\n" + String(bot.energy)+"\n Почва: "+world[x][y]
                 }
             })
         });
@@ -697,7 +697,6 @@
             }
         }
         //начинаем
-        console.log(window.location.search.split("?"))
         function start(crcount, r, g, b, o2, co2) {
             O2 = Number(o2)
             CO2 = Number(co2)
@@ -732,7 +731,14 @@
             }
             setInterval(tick, 50)
         }
-        start(window.location.search.split("&")[1], window.location.search.split("&")[2], window.location.search.split("&")[3], window.location.search.split("&")[4], window.location.search.split("&")[5], window.location.search.split("&")[6])
+        //данные из адресной строки
+        let urlParams = new URLSearchParams(window.location.search);
+        let params = {}
+        urlParams.forEach((p, key) => {
+            params[key] = p;
+        });
+        console.log(params)
+        start(params['c'], params['s'], params['o'], params['w'], params['o2'], params['co2'])
     </script>
 </body>
 
