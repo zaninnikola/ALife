@@ -1,0 +1,593 @@
+<!doctype html>
+<html>
+	<head>
+		<title>canvasExample</title>
+        <meta charset='utf-8' />
+	</head>
+	<body>
+        <table><td>
+		<canvas height='625' width='1250' id='example'>Обновите браузер</canvas>
+        <div> популяция:<span id="population"></span></div>
+        <div> освещенность:<span id="time"></span></div>
+        <div> состав атмосферы| O2:<span id="O2"></span></div>
+        <div> последнее событие:<span id="event"></span></div>
+        </td><td id="botinfo">клетка не выбрана</td>
+        </table>
+		<script>
+            //Сумма всех чисел в массиве
+            function sum(mass){
+                let x = 0
+                for(let i = 0; i<mass.length; i++){
+                    x+=mass[i]
+                }
+                return x
+            }
+            //ГПСЧ
+            function randint(min, max) {
+                return Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+            //функции нейросети
+            const activation_sigmoid = x => 1 / (1 + Math.exp(-x));
+
+            function predict(see, r, g, b, energy,time,r1,g1,b1, O2, weights) {
+                return activation_sigmoid(
+                weights[0] * see 
+                + weights[1] * (r/255) 
+                + weights[2] * (g/255)
+                + weights[3] * (b/255)
+                + weights[4] * (energy/20)
+                + weights[5] * (time/2)
+                + weights[6] * (r1/255) 
+                + weights[7] * (g1/255)
+                + weights[8] * (b1/255)
+                + weights[9] * (O2));
+            }
+            // Время
+            let time = 1
+            let daynight = true
+            //освещенность
+            let light = 1
+            let timeindicator = document.getElementById("time")
+            //состав атмосферы
+            let O2 = 0.4
+            let O2indicator = document.getElementById("O2")
+            // индикатор популяции
+            let population = document.getElementById("population")
+            // индикатор генома бота
+            let botinfo = document.getElementById("botinfo")
+            // бот
+            class creature{
+                constructor(x, y, o, id, energy, weights){
+                    this.x = x
+                    this.y = y
+                    this.o = o
+                    this.id = id
+                    this.energy = energy
+                    this.weights = weights
+                    this.fillStyle = `rgb(${sum(weights[0])*40}, ${sum(weights[1])*40}, ${sum(weights[2])*40})`;
+                    this.strokeStyle = `rgb(${sum(weights[3])*40}, ${sum(weights[4])*40}, ${sum(weights[5])*40})`;
+                }
+                // земля под ногами
+                goo(world){
+                    return world[this.x-1][this.y-1]
+                }
+                // зрение
+                see(emap){
+                    switch(this.o){
+                        case 1:
+                            if(this.x < height){
+                                return emap[this.x][this.y-1]
+                            }
+                            else{
+                                return emap[0][this.y-1]
+                            }
+                            break
+                        case 2:
+                            if(this.x > 1){
+                                return emap[this.x-2][this.y-1]
+                            }
+                            else{
+                                return emap[height-1][this.y-1]
+                            }
+                            break
+                        case 3:
+                            if(this.y < width){
+                                return emap[this.x-1][this.y]
+                            }
+                            else{
+                                return emap[this.x-1][0]
+                            }
+                            break
+                        case 4:
+                            if(this.y > 1){
+                                return emap[this.x-1][this.y-2]
+                            }
+                            else{
+                                return emap[this.x-1][width-1]
+                            }
+                            break
+                    }
+                }
+                //земля впереди
+                seegoo(world){
+                    switch(this.o){
+                        case 1:
+                            if(this.x < height){
+                                return world[this.x][this.y-1]
+                            }
+                            else{
+                                return world[0][this.y-1]
+                            }
+                            break
+                        case 2:
+                            if(this.x > 1){
+                                return world[this.x-2][this.y-1]
+                            }
+                            else{
+                                return world[height-1][this.y-1]
+                            }
+                            break
+                        case 3:
+                            if(this.y < width){
+                                return world[this.x-1][this.y]
+                            }
+                            else{
+                                return world[this.x-1][0]
+                            }
+                            break
+                        case 4:
+                            if(this.y > 1){
+                                return world[this.x-1][this.y-2]
+                            }
+                            else{
+                                return world[this.x-1][width-1]
+                            }
+                            break
+                    }
+                }
+                //повороты
+                left(){
+                    this.energy -= 0.1
+                    switch(this.o){
+                        case 1:
+                            this.o = 4
+                            break
+                        case 2:
+                            this.o = 3
+                            break
+                        case 3:
+                            this.o = 1
+                            break
+                        case 4:
+                            this.o = 2
+                            break
+                    }
+                }
+                right(){
+                    this.energy -= 0.1
+                    switch(this.o){
+                        case 4:
+                            this.o = 1
+                            break
+                        case 3:
+                            this.o = 2
+                            break
+                        case 1:
+                            this.o = 3
+                            break
+                        case 2:
+                            this.o = 4
+                            break
+                    }
+                }
+                //движение
+                forward(emap){
+                    this.energy -= 0.1
+                    if(this.see(emap)==-1){
+                        switch(this.o){
+                            case 1:
+                                if(this.x < height){
+                                    this.x+=1
+                                }
+                                else{
+                                    this.x = 1
+                                }
+                                break
+                            case 2:
+                                if(this.x > 1){
+                                    this.x-=1
+                                }
+                                else{
+                                    this.x = height
+                                }
+                                break
+                            case 3:
+                                if(this.y < width){
+                                    this.y+=1
+                                }
+                                else{
+                                    this.y = 1
+                                }
+                                break
+                            case 4:
+                                if(this.y > 1){
+                                    this.y-=1
+                                }
+                                else{
+                                    this.y = width
+                                }
+                                break
+
+                        }
+                    }
+                }
+                //фотосинтез
+                photo(world){
+                    let goo = this.goo(world)
+                    if(goo[2] >=10 && goo[0] >=10){
+                        world[this.x-1][this.y-1][2]-=10
+                        world[this.x-1][this.y-1][0]-=10
+                        this.energy +=2.5*light
+                        O2 = Math.min(O2+0.0001, 1)
+                    }
+                }
+                //разложение
+                detrit(world){
+                    let goo = this.goo(world)
+                    if(goo[1] >=10 && O2 >= 0.0001){
+                        world[this.x-1][this.y-1][1]-=10
+                        world[this.x-1][this.y-1][0]= Math.min(world[this.x-1][this.y-1][0], 255)
+                        this.energy +=3.5
+                        O2 -= 0.0001
+                    }
+                }
+                //охота
+                ambush(emap, creatures){
+                    if(this.see(emap)!=-1 && this.see(emap)!="a"){
+                        for(let i = 0; i<creatures.length; i++){
+                            if(creatures[i].id == this.see(emap)){
+                                this.energy+=creatures[i].energy/2
+                                creatures.splice(i, 1)
+                            }
+                         }
+                        
+                    }
+                }
+                //размножение
+                mitos(emap, id){
+                    if(this.see(emap) == -1){
+                        this.energy /= 2
+                        //мутация
+                        let newweights = []
+                        for(let i = 0; i<7; i++){
+                            let subweight = []
+                            for(let j = 0; j<10; j++){
+                                subweight.push(this.weights[i][j])
+                            }
+                            newweights.push(subweight)
+                        }
+                        if(randint(0, 1) == 0){
+                            let x = randint(0, 6)
+                            let y = randint(0, 9)
+                            newweights[x][y] = Math.random()
+                        }
+                        //создаем существо впереди себя
+                        switch(this.o){
+                            case 1:
+                                if(this.x < height){
+                                    return new creature(this.x+1, this.y, randint(1, 4), id, this.energy, newweights)
+                                }
+                                else{
+                                    return new creature(1, this.y, randint(1, 4), id, this.energy, newweights)
+                                }
+                                break
+                            case 2:
+                                if(this.x > 1){
+                                    return new creature(this.x-1, this.y, randint(1, 4), id, this.energy, newweights)
+                                }
+                                else{
+                                    return new creature(height, this.y, randint(1, 4), id, this.energy, newweights)
+                                }
+                                break
+                            case 3:
+                                if(this.y < width){
+                                    return new creature(this.x, this.y+1, randint(1, 4), id, this.energy, newweights)
+                                }
+                                else{
+                                    return new creature(this.x, 1, randint(1, 4), id, this.energy, newweights)
+                                }
+                                break
+                            case 4:
+                                if(this.y > 1){
+                                    return new creature(this.x, this.y-1, randint(1, 4), id, this.energy, newweights)
+                                }
+                                else{
+                                    return new creature(this.x, width-1, randint(1, 4), id, this.energy, newweights)
+                                }
+                                break
+                        }
+                    }
+                }
+                //запуск нейросети
+                neuro(world, emap){
+                    let prediction = []
+                    let goo = this.goo(world)
+                    let seegoo = this.seegoo(world)
+                    for(let i = 0; i < 7; i++){
+                        prediction.push(predict(Number(this.see(emap)!=-1), goo[0], goo[1], goo[2], this.energy, time, seegoo[0], seegoo[1], seegoo[2], O2, this.weights[i]))
+                    }
+                    return prediction.indexOf(Math.max.apply(null, prediction))
+                }
+            }
+            //canvas
+			var example = document.getElementById("example"),
+			ctx     = example.getContext('2d');
+            // Размеры мира
+            let height = 100
+            let width = 50
+            //Создаем мир
+            var world = []
+            for (let i = 0; i < height; i++) {
+                let line = []
+                for(let i = 0; i < width; i++){
+                    line.push([randint(0, 255), randint(0, 255), randint(0, 255)])
+                }
+                world.push(line)
+            }
+            
+            //Создаем существ
+            let nextid = 0
+            var creatures = []
+            for(let i = 0; i < 20; i++){
+                //случайные веса для нейросети
+                let weights = []
+                for(let j = 0; j < 7; j++){
+                    w = []
+                    for(let h = 0; h < 10;  h++){
+                        w.push(Math.random())
+                    }
+                    weights.push(w)
+                }
+                //создаем существо
+                creatures.push(new creature(randint(1, height), randint(1, width), randint(1, 4), nextid, 10, weights))
+                nextid++
+            }
+            //просто делаем карту существ глобальной
+            var emap = []
+            //обработка характера по нейросети
+            function naming(weights){
+                switch(weights.indexOf(Math.max.apply(null, weights))){
+                    case 0:
+                        return "когда видит бактерию"
+                    case 1:
+                        return "когда на соленой почве"
+                    case 2:
+                        return "когда на жирной почве"
+                    case 3:
+                        return "когда на мокрой почве"
+                    case 4:
+                        return "когда много энергии"
+                    case 5:
+                        return "днем"
+                    case 6:
+                        return "когда видит соленую почву"
+                    case 7:
+                        return "когда видит жирную почву"
+                    case 8:
+                        return "когда видит мокрую почву"
+                    case 9:
+                        return "когда много кислорода в атмосфере" 
+                }
+            }
+            //обработка клика
+            example.addEventListener('mousedown', function(evt) {
+                var rect = example.getBoundingClientRect();
+                let x = evt.clientX- Math.trunc(rect.left);
+                let y = evt.clientY- Math.trunc(rect.top);
+                let target = emap[Math.floor(x/12.5)][Math.floor(y/12.5)]
+                creatures.forEach(bot => {
+                    if(bot.id == target){
+                        botinfo.textContent = "Поворачивает влево "+naming(bot.weights[0])
+                            +"; поворачивает вправо "+naming(bot.weights[1])
+                            +"; бежит вперед "+naming(bot.weights[2])
+                            +"; фотосинтезирует "+naming(bot.weights[3])
+                            +"; делится "+naming(bot.weights[4])
+                            +"; охотится "+naming(bot.weights[5])
+                            +"; разлагает органику "+naming(bot.weights[6])+"."
+                    }
+                })
+                    
+                
+            });
+            //события в мире
+            let event = document.getElementById("event")
+            //дождь
+            function rain(){
+                for (let i = 0; i < height; i++) {
+                    for(let j = 0; j < width; j++){
+                        world[i][j][2] = Math.min(world[i][j][2]+randint(20, 40), 255)
+                        light /=2
+                    }
+                }
+            }
+            //метеоритный дождь
+            function armageddon(){
+                let aster_count = randint(18, 50)
+                for(let i = 0; i < aster_count; i++){
+                    let x =randint(0, height-1)
+                    let y = randint(0, width-1)
+                    world[x][y][0] = Math.min(world[x][y][0]+randint(40, 80), 255)
+                    world[x][y][1] = Math.min(world[x][y][1]-randint(40, 80), 0)
+                    world[x][y][2] = Math.min(world[x][y][2]-randint(40, 80), 0)
+                    if(emap[x][y] != -1){
+                        for(let i = 0; i<creatures.length; i++){
+                            if(creatures[i].id == emap[x][y]){
+                                this.energy+=creatures[i].energy
+                                creatures.splice(i, 1)
+                            }
+                        }
+                        emap[x][y] = "a"
+                    }
+                }
+            }
+            // Функця обработки мира
+            function tick(){
+                //Смена дня и ночи
+                if(daynight){
+                    time+=0.005
+                }
+                else{
+                    time-=0.005
+                }
+                if(time >= 2 || time <= 0){
+                    daynight = !daynight
+                }
+                light = time
+                //Рисуем мир
+                for (let x = 0; x < height; x++) {
+                    for (let y = 0; y < width; y++) {
+                        ctx.fillStyle=`rgb(${(69*9+world[x][y][0])/10}, ${(41*9+world[x][y][1])/10}, ${(12*9+world[x][y][2])/10})`
+                        ctx.fillRect(x*12.5, y*12.5, 12.5, 12.5);
+                    }
+                }
+                //существа в мире
+                let premap = []
+                for (let i = 0; i < height; i++) {
+                    let line = []
+                    for(let i = 0; i < width; i++){
+                        line.push(-1)
+                    }
+                    premap.push(line)
+                }
+                emap = premap
+                for (let i = 0; i < creatures.length; i++) {
+                    currbot = creatures[i]
+                    if(currbot != 0){
+                        emap[currbot.x-1][currbot.y-1] = currbot.id
+                    }
+                }
+                //Отобразим популяцию
+                population.textContent = String(creatures.length)
+                //Отоброзим состав атмосферы
+                O2indicator.textContent = String(Math.round(O2*10000)/10000)
+                //Случайное событие
+                switch(randint(1, 80)){
+                    case 1, 2, 3, 4, 5, 6, 7, 8:
+                        rain()
+                        event.textContent = "дождь"
+                        break
+                    case 9:
+                        armageddon()
+                        event.textContent = "метеоритный дождь"
+                        break
+                }
+                //Рисуем природу
+                for (let x = 0; x < height; x++) {
+                    for (let y = 0; y < width; y++) {
+                        if(emap[x][y] == "a"){//астероид
+                            ctx.beginPath();
+                            ctx.arc(x*12.5-6.25, y*12.5-6.25, 5, 0, 2*Math.PI, false);
+                            ctx.fillStyle = `orange`;
+                            ctx.fill();
+                            ctx.closePath()
+                            console.log("бабах")
+                        }
+                    }
+                }
+                //Отобразим освещенность
+                timeindicator.textContent = String(light)
+                //Рисуем существ
+                let bots = 0;
+                while(bots < creatures.length){ 
+                    currbot = creatures[bots]
+                    if(currbot != 0){//проверяем, живо ли существо.
+                        //выбираем действие
+                        switch(currbot.neuro(world, emap)){
+                            case 0:
+                                currbot.left()
+                                break
+                            case 1:
+                                currbot.right()
+                                break
+                            case 2:
+                                currbot.forward(emap)
+                                emap[currbot.x-1][currbot.y-1] = currbot.id
+                                break
+                            case 3:
+                                currbot.photo(world)
+                                break
+                            case 4:
+                                let newbot = currbot.mitos(emap, nextid)
+                                nextid++
+                                if(newbot != undefined){
+                                    creatures.push(newbot)
+                                }
+                                break
+                            case 5:
+                                currbot.ambush(emap, creatures)
+                            case 6:
+                                currbot.detrit(world)
+
+                        }
+                        //подсчет энергии
+                        currbot.energy-=0.1
+                        //засоленная, зараженная и наводненная почва
+                        let goo = currbot.goo(world)
+                        if(goo[0] > 200 || goo[1] > 200 || goo[2] > 200){
+                            currbot.energy -= 0.5
+                        }
+                        //кислородное отравление
+                        if(O2 > 0.5){
+                            currbot.energy -= 0.005
+                        }
+                        currbot.energy = Math.min(Math.max(0, currbot.energy), 20)
+                        if(currbot.energy <= 0){
+                            world[currbot.x-1][currbot.y-1][1]=Math.min(world[currbot.x-1][currbot.y-1][1]+randint(10, 50), 255)
+                            creatures.splice(bots, 1) //убиваем существо без энергии
+                        }
+                        //собственно, рисуем
+                        ctx.beginPath();
+                        ctx.arc(currbot.x*12.5-6.25, currbot.y*12.5-6.25, 6.25, 0, 2*Math.PI, false);
+                        ctx.fillStyle = currbot.fillStyle;
+                        ctx.strokeStyle = currbot.strokeStyle;
+                        ctx.stroke();
+                        ctx.fill();
+                        ctx.closePath()
+                        switch(currbot.o){
+                            case 1:
+                                ctx.beginPath();
+                                ctx.arc(currbot.x*12.5, currbot.y*12.5-6.25, 2, 0, 2*Math.PI, false);
+                                ctx.fillStyle = 'black';
+                                ctx.fill()
+                                ctx.closePath()
+                                break
+                            case 2:
+                                ctx.beginPath();
+                                ctx.arc(currbot.x*12.5-12.5, currbot.y*12.5-6.25, 2, 0, 2*Math.PI, false);
+                                ctx.fillStyle = 'black';
+                                ctx.fill()
+                                ctx.closePath()
+                                break
+                            case 3:
+                                ctx.beginPath();
+                                ctx.arc(currbot.x*12.5-6.25, currbot.y*12.5, 2, 0, 2*Math.PI, false);
+                                ctx.fillStyle = 'black';
+                                ctx.fill()
+                                ctx.closePath()
+                                break
+                            case 4:
+                                ctx.beginPath();
+                                ctx.arc(currbot.x*12.5-6.25, currbot.y*12.5-12.5, 2, 0, 2*Math.PI, false);
+                                ctx.fillStyle = 'black';
+                                ctx.fill()
+                                ctx.closePath()
+                                break
+                        }
+                    }
+                    bots++;
+                }
+            }
+            setInterval(tick, 100)
+		</script>
+	</body>
+</html>

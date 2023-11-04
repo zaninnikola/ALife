@@ -1,0 +1,387 @@
+<!doctype html>
+<html>
+	<head>
+		<title>canvasExample</title>
+        <meta charset='utf-8' />
+	</head>
+	<body>
+		<canvas height='625' width='1000' id='example'>Обновите браузер</canvas>
+		<script>
+            //Сумма всех чисел в массиве
+            function sum(mass){
+                let x = 0
+                for(let i = 0; i<mass.length; i++){
+                    x+=mass[i]
+                }
+                return x
+            }
+            //ГПСЧ
+            function randint(min, max) {
+                return Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+            //функции нейросети
+            const activation_sigmoid = x => 1 / (1 + Math.exp(-x));
+
+            function predict(see, r, g, b, energy, weights) {
+                return activation_sigmoid(
+                weights[0] * see 
+                + weights[1] * (r/255) 
+                + weights[2] * (g/255)
+                + weights[3] * (b/255)
+                + weights[4] * (energy/20));
+            }
+            //Бот
+            class creature{
+                constructor(x, y, o, id, energy, weights){
+                    this.x = x
+                    this.y = y
+                    this.o = o
+                    this.id = id
+                    this.energy = energy
+                    this.weights = weights
+                }
+                // зрение
+                see(emap){
+                    switch(this.o){
+                        case 1:
+                            if(this.x < height){
+                                return emap[this.x][this.y-1]
+                            }
+                            else{
+                                return emap[0][this.y-1]
+                            }
+                            break
+                        case 2:
+                            if(this.x > 1){
+                                return emap[this.x-2][this.y-1]
+                            }
+                            else{
+                                return emap[height-1][this.y-1]
+                            }
+                            break
+                        case 3:
+                            if(this.y < width){
+                                return emap[this.x-1][this.y]
+                            }
+                            else{
+                                return emap[this.x-1][0]
+                            }
+                            break
+                        case 4:
+                            if(this.y > 1){
+                                return emap[this.x-1][this.y-2]
+                            }
+                            else{
+                                return emap[this.x-1][width-1]
+                            }
+                            break
+                    }
+                }
+                //повороты
+                left(){
+                    switch(this.o){
+                        case 1:
+                            this.o = 4
+                            break
+                        case 2:
+                            this.o = 3
+                            break
+                        case 3:
+                            this.o = 1
+                            break
+                        case 4:
+                            this.o = 2
+                            break
+                    }
+                }
+                right(){
+                    switch(this.o){
+                        case 4:
+                            this.o = 1
+                            break
+                        case 3:
+                            this.o = 2
+                            break
+                        case 1:
+                            this.o = 3
+                            break
+                        case 2:
+                            this.o = 4
+                            break
+                    }
+                }
+                //движение
+                forward(emap){
+                    if(this.see(emap)==-1){
+                        switch(this.o){
+                            case 1:
+                                if(this.x < height){
+                                    this.x+=1
+                                }
+                                else{
+                                    this.x = 1
+                                }
+                                break
+                            case 2:
+                                if(this.x > 1){
+                                    this.x-=1
+                                }
+                                else{
+                                    this.x = height
+                                }
+                                break
+                            case 3:
+                                if(this.y < width){
+                                    this.y+=1
+                                }
+                                else{
+                                    this.y = 1
+                                }
+                                break
+                            case 4:
+                                if(this.y > 1){
+                                    this.y-=1
+                                }
+                                else{
+                                    this.y = width
+                                }
+                                break
+
+                        }
+                    }
+                }
+                //фотосинтез
+                photo(world){
+                    if(world[this.x-1][this.y-1][2] >=10 && world[this.x-1][this.y-1][0] >=10){
+                        world[this.x-1][this.y-1][2]-=10
+                        world[this.x-1][this.y-1][0]-=10
+                        this.energy +=5
+                    }
+                }
+                //разложение
+                detrit(world){
+                    if(world[this.x-1][this.y-1][1] >=10){
+                        world[this.x-1][this.y-1][1]-=10
+                        world[this.x-1][this.y-1][0]= Math.min(world[this.x-1][this.y-1][0], 255)
+                        world[this.x-1][this.y-1][2]= Math.min(world[this.x-1][this.y-1][0], 255)
+                        this.energy +=5
+                    }
+                }
+                //охота
+                ambush(emap, creatures){
+                    if(this.see(emap)!=-1){
+                        for(let i = 0; i<creatures.length; i++){
+                            if(creatures[i].id == this.see(emap)){
+                                this.energy+=creatures[i].energy
+                                creatures.splice(i, 1)
+                            }
+                         }
+                        
+                    }
+                }
+                //размножение
+                mitos(emap, id){
+                    if(this.see(emap) == -1){
+                        this.energy /= 2
+                        //мутация
+                        let newweights = []
+                        for(let i = 0; i<7; i++){
+                            let subweight = []
+                            for(let j = 0; j<5; j++){
+                                subweight.push(this.weights[i][j])
+                            }
+                            newweights.push(subweight)
+                        }
+                        let x = randint(0, 6)
+                        let y = randint(0, 4)
+                        newweights[x][y] = Math.random()
+                        //создаем существо впереди себя
+                        switch(this.o){
+                            case 1:
+                                if(this.x < height){
+                                    return new creature(this.x+1, this.y, randint(1, 4), id, this.energy, newweights)
+                                }
+                                else{
+                                    return new creature(1, this.y, randint(1, 4), id, this.energy, newweights)
+                                }
+                                break
+                            case 2:
+                                if(this.x > 1){
+                                    return new creature(this.x-1, this.y, randint(1, 4), id, this.energy, newweights)
+                                }
+                                else{
+                                    return new creature(height, this.y, randint(1, 4), id, this.energy, newweights)
+                                }
+                                break
+                            case 3:
+                                if(this.y < width){
+                                    return new creature(this.x, this.y+1, randint(1, 4), id, this.energy, newweights)
+                                }
+                                else{
+                                    return new creature(this.x, 1, randint(1, 4), id, this.energy, newweights)
+                                }
+                                break
+                            case 4:
+                                if(this.y > 1){
+                                    return new creature(this.x, this.y-1, randint(1, 4), id, this.energy, newweights)
+                                }
+                                else{
+                                    return new creature(this.x, width-1, randint(1, 4), id, this.energy, newweights)
+                                }
+                                break
+                        }
+                    }
+                }
+                //запуск нейросети
+                neuro(world, emap){
+                    let prediction = []
+                    for(let i = 0; i < 7; i++){
+                        prediction.push(predict(Number(see(emap)!=-1), world[this.x][this.y][0], world[this.x][this.y][1], world[this.x][this.y][2], this.energy, this.weights[i]))
+                    }
+                    return prediction.indexOf(Math.max(prediction))
+                }
+            }
+            //canvas
+			var example = document.getElementById("example"),
+			ctx     = example.getContext('2d');
+            // Размеры мира
+            let height = 40
+            let width = 25
+            //Создаем мир
+            var world = []
+            for (let i = 0; i < height; i++) {
+                let line = []
+                for(let i = 0; i < width; i++){
+                    line.push([randint(0, 255), randint(0, 255), randint(0, 255)])
+                }
+                world.push(line)
+            }
+            
+            //Создаем существ
+            let nextid = 0
+            var creatures = []
+            for(let i = 0; i < 10; i++){
+                //случайные веса для нейросети
+                let weights = []
+                for(let j = 0; j < 7; j++){
+                    w = []
+                    for(let h = 0; h < 5;  h++){
+                        w.push(Math.random())
+                    }
+                    weights.push(w)
+                }
+                //создаем существо
+                creatures.push(new creature(randint(1, 20), randint(1, 20), randint(1, 4), nextid, 10, weights))
+                nextid++
+            }
+            var emap = []
+            // Функця обработки мира
+            function tick(){
+                //Рисуем мир
+                for (let x = 0; x < height; x++) {
+                    for (let y = 0; y < width; y++) {
+                        ctx.fillStyle=`rgb(${(69*9+world[x][y][0])/10}, ${(41*9+world[x][y][1])/10}, ${(12*9+world[x][y][2])/10})`
+                        ctx.fillRect(x*25, y*25, 25, 25);
+                    }
+                }
+                //существа в мире
+                emap = []
+                for (let i = 0; i < height; i++) {
+                    let line = []
+                    for(let i = 0; i < width; i++){
+                        line.push(-1)
+                    }
+                    emap.push(line)
+                }
+                for (let i = 0; i < creatures.length; i++) {
+                    currbot = creatures[i]
+                    if(currbot != 0){
+                        emap[currbot.x-1][currbot.y-1] = currbot.id
+                    }
+                }
+                //Рисуем существ
+                let bots = 0;
+                while(bots < creatures.length){ 
+                    currbot = creatures[bots]
+                    if(currbot != 0){//проверяем, живо ли существо.
+                        //выбираем действие
+                        switch(randint(1, 9)){
+                            case 1:
+                                currbot.left()
+                                break
+                            case 2:
+                                currbot.right()
+                                break
+                            case 3, 5:
+                                currbot.forward(emap)
+                                emap[currbot.x-1][currbot.y-1] = currbot.id
+                                break
+                            case 4, 6:
+                                currbot.photo(world)
+                                break
+                            case 7:
+                                let newbot = currbot.mitos(emap, nextid)
+                                nextid++
+                                if(newbot != undefined){
+                                    creatures.push(newbot)
+                                }
+                                break
+                            case 8:
+                                currbot.ambush(emap, creatures)
+                            case 9:
+                                currbot.detrit(world)
+
+                        }
+                        // подсчет энергии
+                        currbot.energy-=0.1
+                        currbot.energy = Math.min(Math.max(0, currbot.energy), 20)
+                        if(currbot.energy < 1){
+                            world[currbot.x-1][currbot.y-1][1]=Math.min(world[currbot.x-1][currbot.y-1][1]+randint(10, 20), 255)
+                            creatures.splice(bots, 1) //убиваем существо без энергии
+                        } 
+                        //собственно, рисуем
+                        ctx.beginPath();
+                        ctx.arc(currbot.x*25-12.5, currbot.y*25-12.5, 12.5, 0, 2*Math.PI, false);
+                        ctx.fillStyle = `rgb(${sum(currbot.weights[0])*40}, ${sum(currbot.weights[1])*40}, ${sum(currbot.weights[2])*40})`;
+                        ctx.strokeStyle = `rgb(${sum(currbot.weights[3])*40}, ${sum(currbot.weights[4])*40}, ${sum(currbot.weights[5])*40})`;
+                        ctx.stroke();
+                        ctx.fill();
+                        ctx.closePath()
+                        switch(currbot.o){
+                            case 1:
+                                ctx.beginPath();
+                                ctx.arc(currbot.x*25, currbot.y*25-12.5, 4, 0, 2*Math.PI, false);
+                                ctx.fillStyle = 'black';
+                                ctx.fill()
+                                ctx.closePath()
+                                break
+                            case 2:
+                                ctx.beginPath();
+                                ctx.arc(currbot.x*25-25, currbot.y*25-12.5, 4, 0, 2*Math.PI, false);
+                                ctx.fillStyle = 'black';
+                                ctx.fill()
+                                ctx.closePath()
+                                break
+                            case 3:
+                                ctx.beginPath();
+                                ctx.arc(currbot.x*25-12.5, currbot.y*25, 4, 0, 2*Math.PI, false);
+                                ctx.fillStyle = 'black';
+                                ctx.fill()
+                                ctx.closePath()
+                                break
+                            case 4:
+                                ctx.beginPath();
+                                ctx.arc(currbot.x*25-12.5, currbot.y*25-25, 4, 0, 2*Math.PI, false);
+                                ctx.fillStyle = 'black';
+                                ctx.fill()
+                                ctx.closePath()
+                                break
+                        }
+                    }
+                    bots++;
+                }
+            }
+            setInterval(tick, 100)
+		</script>
+	</body>
+</html>
