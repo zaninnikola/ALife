@@ -402,11 +402,13 @@
             let x = evt.clientX - Math.trunc(rect.left);
             let y = evt.clientY - Math.trunc(rect.top);
             let target = emap[Math.floor(x / 12.5)][Math.floor(y / 12.5)]
+            botinfo.innerHTML ="Состав почвы: "+world[Math.floor(x / 12.5)][Math.floor(y / 12.5)]+"<br>"
             creatures.forEach(bot => {
                 if (bot.id == target) {
-                    botinfo.textContent = genom(bot.weights) + resists[bot.resists.indexOf(1)] + ".\n Последнее действие:" + bot.last + ".\n" + String(bot.energy)+"\n Почва: "+world[x][y]
+                    botinfo.innerHTML += "Геном: "+genom(bot.weights) + resists[bot.resists.indexOf(1)] + ".<br>Последнее действие:" + bot.last + ".<br>" + String(bot.energy)+"<br>Почва: "
                 }
             })
+            
         });
         //обработка пробелов
         let run = true
