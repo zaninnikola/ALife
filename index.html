@@ -17,18 +17,22 @@
     <table>
         <td>
             <tr>
-                <td>
+                <td colspan="2">
                     <canvas height='625' width='1250' id='example'>Обновите браузер</canvas>
                 </td>
                 <td id="botinfo">клетка не выбрана</td>
             </tr>
             <tr>
-                <td>
+                <td width="40%">
                     <div>время:<span id="tick"></span></div>
                     <div>популяция:<span id="population"></span></div>
                     <div>освещенность:<span id="time"></span></div>
                     <div>состав атмосферы| O2:<span id="O2"></span> CO2:<span id="CO2"></span></div>
                     <div>последнее событие:<span id="event"></span></div>
+                </td>
+                <td width="40%">
+                    Файл: <button onclick="save()">сохранить</button><br>
+                    <input type="file" onchange="load(this)" accept="application/json" aria-label="загрузить">
                 </td>
                 <td>
                     отображение: <button onclick="display = 'fancy'">красивое</button><button onclick="display = 'easy'">упрощенное</button>
@@ -383,7 +387,7 @@
         // Размеры мира
         let height = 100, width = 50
         //другие глобальные переменные
-        var emap = [], world = [], nextid = 0, creatures = [], display = "fancy"
+        var emap = [], world = [], nextid = 0, creatures = [], display = "easy"
         //дисплей генома
         function genom(weights) {
             let output = ""
@@ -733,6 +737,61 @@
             }
             setInterval(tick, 50)
         }
+        //сохранение в json файл
+        function save(){
+            let data = {
+                light: light,
+                tickk:tickk,
+                time: time,
+                creatures: creatures,
+                emap:emap,
+                world:world,
+                O2:O2,
+                CO2:CO2,
+                nextid:nextid,
+                name: prompt("Введите название планеты: ", ["Bublik", "Baranka", "Ponchik", "Toroid", "Tor", "Sushka", "Taralli"][randint(0, 6)]+String(randint(1, 100)))
+            }
+            console.log(JSON.stringify(data))
+            let file = new Blob([JSON.stringify(data)], {type: 'application/json'})
+            //фантомная ссылка для автозагрузки
+            var a = document.createElement("a"),
+                url = URL.createObjectURL(file)
+            a.href = url
+            a.download = data.name+".json";
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() {
+                document.body.removeChild(a)
+                window.URL.revokeObjectURL(url)
+            }, 0)
+        }
+        //чтение json файла
+        function load(input){
+            let reader = new FileReader
+            console.log(input.files[0])
+            reader.readAsText(input.files[0])
+            reader.onload = function(e) {
+                var rawLog = reader.result;
+                let data = JSON.parse(reader.result)
+                console.log(data)
+                run = false
+                light = data.light
+                tickk = data.tickk
+                time = data.time
+                creatures = []
+                data.creatures.forEach((item)=>{
+                    creatures.push(new creature(item.x, item.y, item.o, item.id, item.energy, item.weights, item.resists))
+                })
+                emap = data.emap
+                world = data.world
+                O2 = data.O2
+                CO2 = data.CO2
+                nextid = data.nextid
+                run = true
+            };
+            
+        }
+        //загрузка из файла
         //данные из адресной строки
         let urlParams = new URLSearchParams(window.location.search);
         let params = {}
