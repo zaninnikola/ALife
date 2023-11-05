@@ -331,18 +331,18 @@
                         newresists = [0, 0, 0, 0, 0]
                         newresists[randint(0, 4)] = 1
                     }
-                    //мутация нейросети
+                    
+                    //копия нейросети
                     let newweights = []
                     for (let i = 0; i < 8; i++) {
-                        let subweight = []
-                        for (let j = 0; j < 11; j++) {
-                            subweight.push(this.weights[i][j])
-                        }
+                        let subweight =this.weights[i].slice(0)
                         newweights.push(subweight)
                     }
+                    //мутация нейросети
                     let x = randint(0, 7)
                     let y = randint(0, 10)
-                    newweights[x][y] = Math.random()
+                    newweights[x][y] = Math.random() - Math.random()//отрицательные веса появляются только в ходе эволюции
+                    
                     //создаем существо впереди себя
                     switch (this.o) {
                         case 1:
@@ -409,7 +409,7 @@
             botinfo.innerHTML ="Состав почвы: "+world[Math.floor(x / 12.5)][Math.floor(y / 12.5)]+"<br>"
             creatures.forEach(bot => {
                 if (bot.id == target) {
-                    botinfo.innerHTML += "Геном: "+genom(bot.weights) + resists[bot.resists.indexOf(1)] + ".<br>Последнее действие:" + bot.last + ".<br>" + String(bot.energy)+"<br>Почва: "
+                    botinfo.innerHTML += "Геном: "+genom(bot.weights) + resists[bot.resists.indexOf(1)] + ".<br>Последнее действие:" + bot.last + ".<br>" + String(bot.energy)
                 }
             })
             
@@ -498,8 +498,10 @@
             eye[currbot.o](currbot)
         }
         function easy(currbot) {
-            ctx.fillStyle = currbot.fillStyle;
-            ctx.fillRect((currbot.x-1) * 12.5, (currbot.y-1) * 12.5, 12.5, 12.5);
+            ctx.fillStyle = currbot.fillStyle
+            ctx.strokeStyle = currbot.strokeStyle
+            ctx.fillRect((currbot.x-1) * 12.5, (currbot.y-1) * 12.5, 12.5, 12.5)
+            ctx.strokeRect((currbot.x-1) * 12.5, (currbot.y-1) * 12.5, 12.5, 12.5)
         }
         //события в мире
         let event = document.getElementById("event")
