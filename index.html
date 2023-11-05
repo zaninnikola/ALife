@@ -51,9 +51,20 @@
             }
             return x
         }
-        //ГПСЧ
+        //чисто для адекватных цветов
+        function asum(mass) {
+            let x = 0
+            for (let i = 0; i < mass.length; i++) {
+                x += Math.abs(mass[i])
+            }
+            return x
+        }
+        //ГПСЧ взяты отсюда: https://myrusakov.ru/js-random-numbers.html
         function randint(min, max) {
             return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        function getRandomFloat(min, max) {
+            return Math.random() * (max - min) + min;
         }
         //функции нейросети
         const activation_sigmoid = x => 1 / (1 + Math.exp(-x));
@@ -98,7 +109,7 @@
                 this.id = id
                 this.energy = energy
                 this.weights = weights
-                this.fillStyle = `rgb(${sum(weights[0]) * 40}, ${sum(weights[1]) * 40}, ${sum(weights[2]) * 40})`
+                this.fillStyle = `rgb(${asum(weights[0]) * 23}, ${asum(weights[1]) * 23}, ${asum(weights[2]) * 23})`
                 this.strokeStyle = `rgb(${sum(weights[5]) * 80}, ${sum(weights[3]) * 80}, ${(sum(weights[6]) + sum(weights[7])) * 80})`
                 this.resists = resists
                 this.last = 'рождение'
@@ -341,7 +352,7 @@
                     //мутация нейросети
                     let x = randint(0, 7)
                     let y = randint(0, 10)
-                    newweights[x][y] = Math.random() - Math.random()//отрицательные веса появляются только в ходе эволюции
+                    newweights[x][y] = getRandomFloat(-1, 1)//отрицательные веса появляются только в ходе эволюции
                     
                     //создаем существо впереди себя
                     switch (this.o) {
@@ -499,13 +510,10 @@
         }
         function easy(currbot) {
             ctx.fillStyle = currbot.fillStyle
-            ctx.strokeStyle = currbot.strokeStyle
             ctx.fillRect((currbot.x-1) * 12.5, (currbot.y-1) * 12.5, 12.5, 12.5)
-            ctx.strokeRect((currbot.x-1) * 12.5, (currbot.y-1) * 12.5, 12.5, 12.5)
         }
         //события в мире
         let event = document.getElementById("event")
-        //дождь
         function rain() {
             for (let i = 0; i < height; i++) {
                 for (let j = 0; j < width; j++) {
@@ -705,13 +713,31 @@
             }
         }
         //начинаем
-        function start(crcount, r, g, b, o2, co2) {
-            O2 = Number(o2)
-            CO2 = Number(co2)
+        function start(crcount, r, g, b, o2, co2, cal) {
             emap = []
             world = []
             nextid = 0
             creatures = []
+            if(!crcount){
+                crcount = 80
+            }
+            if(!r){
+                r = 255
+            }
+            if(!g){
+                g = 255
+            }
+            if(!b){
+                b = 255
+            }
+            if(!o2){
+                o2 = 0.5
+            }
+            if(!co2){
+                co2 = 0.5
+            }
+            O2 = Number(o2)
+            CO2 = Number(co2)
             //Создаем мир
             for (let i = 0; i < height; i++) {
                 let line = []
@@ -801,7 +827,7 @@
             params[key] = p;
         });
         console.log(params)
-        start(params['c'], params['s'], params['o'], params['w'], params['o2'], params['co2'])
+        start(params['c'], params['s'], params['o'], params['w'], params['o2'], params['co2'], params['calm'])
     </script>
 </body>
 
