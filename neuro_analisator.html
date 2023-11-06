@@ -43,11 +43,7 @@
                         ctx.fill();
                         ctx.closePath()
                         if(item2 != -2){
-                            if(-0.2 < item2 < 0.2){
-                                ctx.strokeStyle = "grey"
-                            } else {
-                                ctx.strokeStyle = "white"
-                            }
+                            ctx.strokeStyle = `rgb(${item2*255},${item2*255},${item2*255})`
                             ctx.beginPath()
                             ctx.moveTo((220/item.length) * index2+(220/item.length/2), 220/item.length/2)
                             ctx.lineTo((220/weights.length) * index+(220/weights.length/2), 220-(220/weights.length/2))

@@ -17,28 +17,31 @@
     <table>
         <td>
             <tr>
-                <td colspan="2">
+                <td colspan="4">
                     <canvas height='625' width='1250' id='example'>Обновите браузер</canvas>
                 </td>
                 <td id="botinfo">клетка не выбрана</td>
             </tr>
             <tr>
-                <td width="25%">
+                <td width="20%">
                     <div>время:<span id="tick"></span></div>
                     <div>популяция:<span id="population"></span></div>
                     <div>освещенность:<span id="time"></span></div>
                     <div>состав атмосферы| O2:<span id="O2"></span> CO2:<span id="CO2"></span></div>
                     <div>последнее событие:<span id="event"></span></div>
                 </td>
-                <td width="25%">
+                <td width="20%">
                     Мир: <button onclick="save()">сохранить</button><br>
                     <input type="file" onchange="load(this)" accept="application/json" aria-label="загрузить">
                 </td>
-                <td width="25%">
+                <td width="20%">
                     Бот: <button onclick="nsave()">сохранить нейросеть</button><br> 
                     <input type="file" onchange="nload(this)" accept="application/json" aria-label="загрузить">
                 </td>
-                <td width="25%">
+                <td width="20%">
+                    <input type="range" onchange="timereset(this)" min = "1" max = "200" value="50">
+                </td>
+                <td width="20%">
                     отображение: <button onclick="display = 'fancy'">красивое</button><button onclick="display = 'easy'">упрощенное</button>
                 </td>
             </tr>
@@ -82,7 +85,11 @@
                     enabled +=1
                 }
             }
-            return activation_sigmoid(non_activated/enabled);
+            if(enabled != 0){
+                return activation_sigmoid(non_activated/enabled);
+            } else {
+                return -Infinity
+            }
         }
         // Время
         let tickk = 0
@@ -392,7 +399,7 @@
         // Размеры мира
         let height = 100, width = 50
         //другие глобальные переменные
-        var emap = [], world = [], nextid = 0, creatures = [], display = "easy", select = []
+        var emap = [], world = [], nextid = 0, creatures = [], display = "easy", select = [], inter
         //дисплей генома
         function genom(weights) {
             let output = ""
@@ -758,7 +765,12 @@
                 creatures.push(new creature(randint(1, height), randint(1, width), randint(1, 4), nextid, 20, weights, resists))
                 nextid++
             }
-            setInterval(tick, 50)
+            inter = setInterval(tick, 50)
+        }
+        //изменение времени
+        function timereset(input){
+            clearInterval(inter)
+            setInterval(tick, input.value)
         }
         //сохранение нейросети
         function nsave(){
