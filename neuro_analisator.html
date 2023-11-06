@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Искусственная жизнь - анализ генома</title>
+        <title>Искусственная жизнь - визуализатор генома</title>
     </head>
     <body>
         <canvas height='220' width='220' id='example'>Обновите браузер</canvas>
@@ -43,7 +43,7 @@
                         ctx.fill();
                         ctx.closePath()
                         if(item2 != -2){
-                            ctx.strokeStyle = `rgb(${item2*255},${item2*255},${item2*255})`
+                            ctx.strokeStyle = `rgb(${item2*255},0,${-item2*255})`
                             ctx.beginPath()
                             ctx.moveTo((220/item.length) * index2+(220/item.length/2), 220/item.length/2)
                             ctx.lineTo((220/weights.length) * index+(220/weights.length/2), 220-(220/weights.length/2))
