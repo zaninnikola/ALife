@@ -32,8 +32,7 @@
                 </td>
                 <td width="40%">
                     Файл: <button onclick="save()">сохранить</button><br>
-                    <input type="file" onchange="load(this)" accept="application/json" aria-label="загрузить"><br>
-                    <button onclick="nsave()">сохранить нейросеть</button><br>
+                    <input type="file" onchange="load(this)" accept="application/json" aria-label="загрузить">
                 </td>
                 <td>
                     отображение: <button onclick="display = 'fancy'">красивое</button><button onclick="display = 'easy'">упрощенное</button>
@@ -67,19 +66,14 @@
         function getRandomFloat(min, max) {
             return Math.random() * (max - min) + min;
         }
-        //функция активации https://habr.com/ru/companies/epam_systems/articles/317050/
+        //функции нейросети https://habr.com/ru/companies/epam_systems/articles/317050/
         const activation_sigmoid = x => 1 / (1 + Math.exp(-x));
-        //кастомная функция для нейронки, но в основе все тот же перцептрон с хабра
         function predict(input, weights) {
-            let non_activated = 0
-            let enabled = 0
+            let sum = 0
             for(let i = 0; i<input.length; i++){
-                if(weights[i] != -2){
-                    non_activated+=input[i]*weights[i]
-                    enabled +=1
-                }
+                sum+=input[i]*weights[i]
             }
-            return activation_sigmoid(non_activated/enabled);
+            return activation_sigmoid(sum);
         }
         // Время
         let tickk = 0
@@ -341,8 +335,7 @@
                     //мутация нейросети
                     let x = randint(0, 7)
                     let y = randint(0, 10)
-                    let randweight = getRandomFloat(-1, 1)
-                    newweights[x][y] = [randweight, randweight, -2][randint(0,2)]//отрицательные веса и отключенные синапсы появляются только в ходе эволюции
+                    newweights[x][y] = getRandomFloat(-1, 1)//отрицательные веса появляются только в ходе эволюции
                     
                     //создаем существо впереди себя
                     switch (this.o) {
@@ -371,7 +364,7 @@
                     }
                 }
             }
-            //запуск нейросети
+            //запуск нейросети - сюда надо добавить отключение синапсов
             neuro(world, emap) {
                 let prediction = []
                 let goo = this.goo(world)
@@ -389,7 +382,7 @@
         // Размеры мира
         let height = 100, width = 50
         //другие глобальные переменные
-        var emap = [], world = [], nextid = 0, creatures = [], display = "easy", select = []
+        var emap = [], world = [], nextid = 0, creatures = [], display = "easy"
         //дисплей генома
         function genom(weights) {
             let output = ""
@@ -411,7 +404,6 @@
             botinfo.innerHTML ="Состав почвы: "+world[Math.floor(x / 12.5)][Math.floor(y / 12.5)]+"<br>"
             creatures.forEach(bot => {
                 if (bot.id == target) {
-                    select = bot.weights
                     botinfo.innerHTML += "Геном: "+genom(bot.weights) + resists[bot.resists.indexOf(1)] + ".<br>Последнее действие:" + bot.last + ".<br>" + String(bot.energy)
                 }
             })
@@ -756,25 +748,6 @@
                 nextid++
             }
             setInterval(tick, 50)
-        }
-        //сохранение нейросети
-        function nsave(){
-            let data = {
-                name: prompt("Введите название организма: ", ["Бот", "Бактерия", "Микроб", "Кокк", "Прокариот"][randint(0, 4)]+String(randint(1, 100))),
-                weights: select
-            }
-            let file = new Blob([JSON.stringify(data)], {type: 'application/json'})
-            //фантомная ссылка для автозагрузки
-            var a = document.createElement("a"),
-                url = URL.createObjectURL(file)
-            a.href = url
-            a.download = data.name+".json";
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(function() {
-                document.body.removeChild(a)
-                window.URL.revokeObjectURL(url)
-            }, 0)
         }
         //сохранение в json файл
         function save(){

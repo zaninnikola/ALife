@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Искусственная жизнь - анализ генома</title>
+    </head>
+    <body>
+        <canvas height='220' width='220' id='example'>Обновите браузер</canvas>
+        <input type="file" onchange="load(this)" accept="application/json" aria-label="загрузить">
+    </body>
+    <script>
+        let colors = ["white", "red", "lime", "blue", "yellow", "pink", "crimson", "green", "navy", "cyan", "silver"]
+        let colors2 = ["white", "white", "silver", "pink", "violet", "crimson", "lime", "red"]
+        function asum(mass) {
+            let x = 0
+            for (let i = 0; i < mass.length; i++) {
+                x += Math.abs(mass[i])
+            }
+            return x
+        }
+        var example = document.getElementById("example"),
+            ctx = example.getContext('2d');
+        function load(input){
+            let reader = new FileReader
+            console.log(input.files[0])
+            reader.readAsText(input.files[0])
+            reader.onload = function(e) {
+                var rawLog = reader.result;
+                let data = JSON.parse(reader.result)
+                let weights = data.weights
+                console.log(data)
+                ctx.fillStyle='black'
+                ctx.fillRect(0,0,220,220)
+                weights.forEach((item, index) => {
+                    ctx.beginPath();
+                    ctx.arc((220/weights.length) * index+(220/weights.length/2), 220-(220/weights.length/2), (220/weights.length/2), 0, 2 * Math.PI, false);
+                    ctx.fillStyle = colors2[index];
+                    ctx.fill();
+                    ctx.closePath()
+                    item.forEach((item2, index2) => {
+                        ctx.beginPath();
+                        ctx.arc((220/item.length) * index2+(220/item.length/2), 220/item.length/2, (220/item.length/2), 0, 2 * Math.PI, false);
+                        ctx.fillStyle = colors[index2];
+                        ctx.fill();
+                        ctx.closePath()
+                        if(item2 != -2){
+                            if(-0.2 < item2 < 0.2){
+                                ctx.strokeStyle = "grey"
+                            } else {
+                                ctx.strokeStyle = "white"
+                            }
+                            ctx.beginPath()
+                            ctx.moveTo((220/item.length) * index2+(220/item.length/2), 220/item.length/2)
+                            ctx.lineTo((220/weights.length) * index+(220/weights.length/2), 220-(220/weights.length/2))
+                            ctx.stroke()
+                            ctx.closePath()
+                        }
+                    }); 
+                });
+            };
+            
+        }
+    </script>
+</html>
