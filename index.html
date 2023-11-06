@@ -20,7 +20,9 @@
                 <td colspan="4">
                     <canvas height='625' width='1250' id='example'>Обновите браузер</canvas>
                 </td>
-                <td id="botinfo">клетка не выбрана</td>
+                <td><canvas height='220' width='220' id='bot'>Обновите браузер</canvas>
+                    <p id="botinfo">клетка не выбрана</p>
+                </td>
             </tr>
             <tr>
                 <td width="20%">
@@ -35,19 +37,22 @@
                     <input type="file" onchange="load(this)" accept="application/json" aria-label="загрузить">
                 </td>
                 <td width="20%">
-                    Бот: <button onclick="nsave()">сохранить нейросеть</button><br> 
+                    Бот: <button onclick="nsave()">сохранить нейросеть</button><br>
                     <input type="file" onchange="nload(this)" accept="application/json" aria-label="загрузить">
                 </td>
                 <td width="20%">
-                    <input type="range" onchange="timereset(this)" min = "1" max = "200" value="50">
+                    <input type="range" onchange="timereset(this)" min="1" max="200" value="50">
                 </td>
                 <td width="20%">
-                    отображение: <button onclick="display = 'fancy'">красивое</button><button onclick="display = 'easy'">упрощенное</button>
+                    отображение: <button onclick="display = 'fancy'">красивое</button>
+                    <button onclick="display = 'easy'">упрощенное</button>
+                    <button onclick="display = 'food'">питание</button>
+                    <button onclick="display = 'energy'">энергия</button>
                 </td>
             </tr>
         </td>
-        
-        
+
+
     </table>
     <script>
         //Сумма всех чисел в массиве
@@ -75,20 +80,57 @@
         }
         //функция активации https://habr.com/ru/companies/epam_systems/articles/317050/
         const activation_sigmoid = x => 1 / (1 + Math.exp(-x));
-        //кастомная функция для нейронки, но в основе все тот же перцептрон с хабра
+        //кастомные функции для нейронки, но в основе все тот же перцептрон с хабра
+        //обычная функция с сигмоидальной активацией
         function predict(input, weights) {
             let non_activated = 0
             let enabled = 0
-            for(let i = 0; i<input.length; i++){
-                if(weights[i] != -2){
-                    non_activated+=input[i]*weights[i]
-                    enabled +=1
+            for (let i = 0; i < input.length; i++) {
+                if (weights[i] != -2) {
+                    non_activated += input[i] * weights[i]
+                    enabled += 1
                 }
             }
-            if(enabled != 0){
-                return activation_sigmoid(non_activated/enabled);
+            if (enabled != 0) {
+                return activation_sigmoid(non_activated / enabled);
             } else {
-                return -Infinity
+                return 0
+            }
+        }
+        //функция с рандомным выводом
+        function random_predict(input, weights) {
+            let non_activated = 0
+            let enabled = 0
+            for (let i = 0; i < input.length; i++) {
+                if (weights[i] != -2) {
+                    non_activated += input[i] * weights[i]
+                    enabled += 1
+                }
+            }
+            if (enabled != 0) {
+                return getRandomFloat(activation_sigmoid(non_activated / enabled), 1)
+            } else {
+                return getRandomFloat(0, 1)
+            }
+        }
+        //пороговая функция
+        function porog(input, weights) {
+            let non_activated = 0
+            let enabled = 0
+            for (let i = 0; i < input.length; i++) {
+                if (weights[i] != -2) {
+                    non_activated += input[i] * weights[i]
+                    enabled += 1
+                }
+            }
+            if (enabled != 0) {
+                if(non_activated / enabled >= 0 ){
+                    return 1;
+                } else {
+                    return 0
+                }
+            } else {
+                return 0
             }
         }
         // Время
@@ -110,13 +152,15 @@
         let botinfo = document.getElementById("botinfo")
         // бот
         class creature {
-            constructor(x, y, o, id, energy, weights, resists) {
+            constructor(x, y, o, id, energy, weights, weights2, resists, hidden) {
                 this.x = x
                 this.y = y
                 this.o = o
                 this.id = id
                 this.energy = energy
                 this.weights = weights
+                this.weights2 = weights2
+                this.hidden = hidden
                 this.fillStyle = `rgb(${asum(weights[0]) * 23}, ${asum(weights[1]) * 23}, ${asum(weights[2]) * 23})`
                 this.strokeStyle = `rgb(${sum(weights[5]) * 80}, ${sum(weights[3]) * 80}, ${(sum(weights[6]) + sum(weights[7])) * 80})`
                 this.resists = resists
@@ -341,41 +385,56 @@
                         newresists = [0, 0, 0, 0, 0]
                         newresists[randint(0, 4)] = 1
                     }
-                    
+
                     //копия нейросети
                     let newweights = []
                     for (let i = 0; i < 8; i++) {
-                        let subweight =this.weights[i].slice(0)
+                        let subweight = this.weights[i].slice(0)
                         newweights.push(subweight)
                     }
+                    let newweights2 = []
+                    for (let i = 0; i < 8; i++) {
+                        let subweight = this.weights2[i].slice(0)
+                        newweights2.push(subweight)
+                    }
                     //мутация нейросети
-                    let x = randint(0, 7)
-                    let y = randint(0, 10)
-                    let randweight = getRandomFloat(-1, 1)
-                    newweights[x][y] = [randweight, randweight, -2][randint(0,2)]//отрицательные веса и отключенные синапсы появляются только в ходе эволюции
-                    
+                    let rand = randint(0, 2)
+                    let hidden = this.hidden.slice(0)
+                    if(rand == 1){
+                        let x = randint(0, 7)
+                        let y = randint(0, 10)
+                        let randweight = getRandomFloat(-1, 1)
+                        newweights[x][y] = [randweight, randweight, -2][randint(0, 2)]//отрицательные веса и отключенные синапсы появляются только в ходе эволюции
+                    } else if(rand == 0){
+                        let x = randint(0, 7)
+                        let y = randint(0, 7)
+                        let randweight = getRandomFloat(-1, 1)
+                        newweights2[x][y] = [randweight, randweight, -2][randint(0, 2)]//скрытый слой также мутирует только в ходе эволюции
+                    } else{
+                        hidden[randint(0,7)] = ["s", "p", "r"][randint(0,2)]
+                    }
                     //создаем существо впереди себя
                     switch (this.o) {
                         case 1:
-                            return new creature(this.x % height + 1, this.y, randint(1, 4), id, this.energy, newweights, newresists)
+                            return new creature(this.x % height + 1, this.y, randint(1, 4), id, this.energy, newweights, newweights2, newresists, hidden)
                             break
                         case 2:
                             if (this.x > 1) {
-                                return new creature(this.x - 1, this.y, randint(1, 4), id, this.energy, newweights, newresists)
+                                return new creature(this.x - 1, this.y, randint(1, 4), id, this.energy, newweights, newweights2, newresists, hidden)
                             }
                             else {
-                                return new creature(height, this.y, randint(1, 4), id, this.energy, newweights, newresists)
+                                return new creature(height, this.y, randint(1, 4), id, this.energy, newweights, newweights2, newresists, hidden)
                             }
                             break
                         case 3:
-                            return new creature(this.x, this.y % width + 1, randint(1, 4), id, this.energy, newweights, newresists)
+                            return new creature(this.x, this.y % width + 1, randint(1, 4), id, this.energy, newweights, newweights2, newresists, hidden)
                             break
                         case 4:
                             if (this.y > 1) {
-                                return new creature(this.x, this.y - 1, randint(1, 4), id, this.energy, newweights, newresists)
+                                return new creature(this.x, this.y - 1, randint(1, 4), id, this.energy, newweights, newweights2, newresists, hidden)
                             }
                             else {
-                                return new creature(this.x, width - 1, randint(1, 4), id, this.energy, newweights, newresists)
+                                return new creature(this.x, width - 1, randint(1, 4), id, this.energy, newweights, newweights2, newresists, hidden)
                             }
                             break
                     }
@@ -384,32 +443,100 @@
             //запуск нейросети
             neuro(world, emap) {
                 let prediction = []
+                let prediction2 = []
                 let goo = this.goo(world)
                 let seegoo = this.seegoo(world)
+                let sensors = [Number(this.see(emap) != -1 && this.see(emap)!="a"), goo[0] / 256, goo[1] / 256, goo[2] / 256,this.energy / 20, light / 2, seegoo[0] / 256, seegoo[1] / 256, seegoo[2] / 256, O2, CO2]
                 for (let i = 0; i < 8; i++) {
-                    prediction.push(predict([Number(this.see(emap) != -1), goo[0]/256, goo[1]/256, goo[2]/256, 
-                        this.energy/20, light/2, seegoo[0]/256, seegoo[1]/256, seegoo[2]/256, O2, CO2], this.weights[i]))
+                    prediction.push(predict(sensors, this.weights[i]))
                 }
-                return prediction.indexOf(Math.max.apply(null, prediction))
+                for (let i = 0; i < 8; i++) {
+                    switch(this.hidden[i]){
+                        case "s":
+                            prediction2.push(predict(prediction, this.weights2[i]))
+                            break
+                        case "p":
+                            prediction2.push(porog(prediction, this.weights2[i]))
+                            break
+                        case "r":
+                            prediction2.push(random_predict(prediction, this.weights2[i]))
+                            break
+                    }
+                    
+                }
+                return prediction2.indexOf(Math.max.apply(null, prediction2))
             }
         }
         //canvas
         var example = document.getElementById("example"),
             ctx = example.getContext('2d');
+        //canvas для нейронов
+        var visual = document.getElementById("bot"),
+            vis = visual.getContext('2d');
         // Размеры мира
         let height = 100, width = 50
         //другие глобальные переменные
+        let colors = ["white", "red", "lime", "blue", "yellow", "pink", "crimson", "green", "navy", "cyan", "silver"]
+        let colors2 = ["white", "white", "silver", "yellow", "violet", "crimson", "lime", "red"]
         var emap = [], world = [], nextid = 0, creatures = [], display = "easy", select = [], inter
         //дисплей генома
         function genom(weights) {
             let output = ""
             weights.forEach((item) => {
-                item.forEach((w) =>{
-                    output += Math.round(w*100)/100+" "
+                item.forEach((w) => {
+                    output += Math.round(w * 100) / 100 + " "
                 })
-                output+=";\n"
+                output += ";\n"
             })
             return output
+        }
+        //чтение генома
+        function loadc(select) {
+            let weights = select.weights
+            let weights2 = select.weights2
+            vis.fillStyle = 'black'
+            vis.fillRect(0, 0, 220, 220)
+            colors.forEach((item2, index2) => {
+                vis.beginPath();
+                vis.arc((220 / colors.length) * index2 + (220 / colors.length / 2), 220 / colors.length / 2, (220 / colors.length / 2), 0, 2 * Math.PI, false);
+                vis.fillStyle = colors[index2];
+                vis.fill();
+                vis.closePath()
+            })
+            weights.forEach((item, index) => {
+                vis.beginPath();
+                vis.arc((220 / weights.length) * index + (220 / weights.length / 2), 110, (220 / weights.length / 2), 0, 2 * Math.PI, false);
+                vis.fillStyle = necolor[select.hidden[index]];
+                vis.fill();
+                vis.closePath()
+                item.forEach((item2, index2) => {
+                    if (item2 != -2) {
+                        vis.strokeStyle = `rgb(${item2 * 255},0,${-item2 * 255})`
+                        vis.beginPath()
+                        vis.moveTo((220 / item.length) * index2 + (220 / item.length / 2), 220 / item.length / 2)
+                        vis.lineTo((220 / weights.length) * index + (220 / weights.length / 2), 110)
+                        vis.stroke()
+                        vis.closePath()
+                    }
+                });
+            });
+            weights2.forEach((item, index) => {
+                vis.beginPath();
+                vis.arc((220 / weights2.length) * index + (220 / weights2.length / 2), 220-(220 / weights2.length / 2), (220 / weights2.length / 2), 0, 2 * Math.PI, false);
+                vis.fillStyle = colors2[index];
+                vis.fill();
+                vis.closePath()
+                item.forEach((item2, index2) => {
+                    if (item2 != -2) {
+                        vis.strokeStyle = `rgb(${item2 * 255},0,${-item2 * 255})`
+                        vis.beginPath()
+                        vis.moveTo((220 / item.length) * index2 + (220 / item.length / 2), 110)
+                        vis.lineTo((220 / weights2.length) * index + (220 / weights2.length / 2), 220-(220 / weights2.length / 2))
+                        vis.stroke()
+                        vis.closePath()
+                    }
+                });
+            });
         }
         //обработка клика
         example.addEventListener('mousedown', function (evt) {
@@ -418,14 +545,19 @@
             let x = evt.clientX - Math.trunc(rect.left);
             let y = evt.clientY - Math.trunc(rect.top);
             let target = emap[Math.floor(x / 12.5)][Math.floor(y / 12.5)]
-            botinfo.innerHTML ="Состав почвы: "+world[Math.floor(x / 12.5)][Math.floor(y / 12.5)]+"<br>"
+            botinfo.innerHTML = "Состав почвы: " + world[Math.floor(x / 12.5)][Math.floor(y / 12.5)] + "<br>"
             creatures.forEach(bot => {
                 if (bot.id == target) {
-                    select = bot.weights
-                    botinfo.innerHTML += "Геном: "+genom(bot.weights) + resists[bot.resists.indexOf(1)] + ".<br>Последнее действие:" + bot.last + ".<br>" + String(bot.energy)
+                    select = {
+                        weights: bot.weights,
+                        weights2: bot.weights2,
+                        hidden: bot.hidden
+                    }
+                    loadc(select)
+                    botinfo.innerHTML += resists[bot.resists.indexOf(1)] + ".<br>Последнее действие:" + bot.last + ".<br>" + String(bot.energy)
                 }
             })
-            
+
         });
         //обработка пробелов
         let run = true
@@ -435,6 +567,20 @@
             }
         });
         //объекты для замены switch
+        //тип нейрона - цвет
+        let necolor = {
+            "s":"white",
+            "p":"blue",
+            "r":"red"
+        }
+        //действие - цвет
+        let actcolor = {
+            "съел товарища": "crimson",
+            "фотосинтез": "lime",
+            "разложение органики": "violet",
+            "хемосинтез": "blue",
+            "рождение": "white"
+        }
         //глаз бота
         let eye = {
             1: function (currbot) {
@@ -512,7 +658,15 @@
         }
         function easy(currbot) {
             ctx.fillStyle = currbot.fillStyle
-            ctx.fillRect((currbot.x-1) * 12.5, (currbot.y-1) * 12.5, 12.5, 12.5)
+            ctx.fillRect((currbot.x - 1) * 12.5, (currbot.y - 1) * 12.5, 12.5, 12.5)
+        }
+        function food(currbot) {
+            ctx.fillStyle = actcolor[currbot.last]
+            ctx.fillRect((currbot.x - 1) * 12.5, (currbot.y - 1) * 12.5, 12.5, 12.5)
+        }
+        function energy(currbot) {
+            ctx.fillStyle = `rgb(${currbot.energy * 255 / 20},${currbot.energy * 255 / 20},${currbot.energy * 255 / 20})`
+            ctx.fillRect((currbot.x - 1) * 12.5, (currbot.y - 1) * 12.5, 12.5, 12.5)
         }
         //события в мире
         let event = document.getElementById("event")
@@ -700,18 +854,57 @@
                         continue
                     }
                     //собственно, рисуем
-                    switch(display){
+                    switch (display) {
                         case "easy":
                             easy(currbot)
                             break
                         case "fancy":
                             fancy(currbot)
                             break
+                        case "energy":
+                            energy(currbot)
+                            break
+                        case "food":
+                            food(currbot)
+                            break
                     }
-                    
                     //следущий бот
                     bots++;
                 }
+            } else { //чтобы даже на паузе можно было менять отображения
+                for (let x = 0; x < height; x++) {
+                    for (let y = 0; y < width; y++) {
+                        ctx.fillStyle = `rgb(${world[x][y][0] / 10}, ${world[x][y][1] / 10}, ${world[x][y][2] / 10})`
+                        ctx.fillRect(x * 12.5, y * 12.5, 12.5, 12.5);
+                    }
+                }
+                for (let x = 0; x < height; x++) {
+                    for (let y = 0; y < width; y++) {
+                        if (emap[x][y] == "a") {//астероид или огонь
+                            ctx.beginPath();
+                            ctx.arc(x * 12.5 - 6.25, y * 12.5 - 6.25, 5, 0, 2 * Math.PI, false);
+                            ctx.fillStyle = 'orange';
+                            ctx.fill();
+                            ctx.closePath()
+                        }
+                    }
+                }
+                creatures.forEach((currbot)=>{
+                    switch (display) {
+                        case "easy":
+                            easy(currbot)
+                            break
+                        case "fancy":
+                            fancy(currbot)
+                            break
+                        case "energy":
+                            energy(currbot)
+                            break
+                        case "food":
+                            food(currbot)
+                            break
+                    }
+                })
             }
         }
         //начинаем
@@ -720,22 +913,22 @@
             world = []
             nextid = 0
             creatures = []
-            if(!crcount){
+            if (!crcount) {
                 crcount = 80
             }
-            if(!r){
+            if (!r) {
                 r = 255
             }
-            if(!g){
+            if (!g) {
                 g = 255
             }
-            if(!b){
+            if (!b) {
                 b = 255
             }
-            if(!o2){
+            if (!o2) {
                 o2 = 0.5
             }
-            if(!co2){
+            if (!co2) {
                 co2 = 0.5
             }
             O2 = Number(o2)
@@ -749,6 +942,16 @@
                 world.push(line)
             }
             //Создаем существ
+            let weights2 = [
+                [1, -2, -2, -2, -2, -2, -2, -2],
+                [-2, 1, -2, -2, -2, -2, -2, -2],
+                [-2, -2, 1, -2, -2, -2, -2, -2],
+                [-2, -2, -2, 1, -2, -2, -2, -2],
+                [-2, -2, -2, -2, 1, -2, -2, -2],
+                [-2, -2, -2, -2, -2, 1, -2, -2],
+                [-2, -2, -2, -2, -2, -2, 1, -2],
+                [-2, -2, -2, -2, -2, -2, -2, 1],
+            ]
             for (let i = 0; i < crcount; i++) {
                 //случайные веса для нейросети
                 let weights = []
@@ -762,98 +965,107 @@
                 //создаем существо
                 let resists = [0, 0, 0, 0, 0]
                 resists[randint(0, 4)] = 1
-                creatures.push(new creature(randint(1, height), randint(1, width), randint(1, 4), nextid, 20, weights, resists))
+                creatures.push(new creature(randint(1, height), randint(1, width), randint(1, 4), nextid, 20, weights,weights2, resists, ['s', 's', 's', 's', 's', 's', 's', 's']))
                 nextid++
             }
             inter = setInterval(tick, 50)
         }
         //изменение времени
-        function timereset(input){
+        function timereset(input) {
             clearInterval(inter)
             setInterval(tick, input.value)
         }
         //сохранение нейросети
-        function nsave(){
+        function nsave() {
             let data = {
-                name: prompt("Введите название организма: ", ["Бот", "Бактерия", "Микроб", "Кокк", "Прокариот"][randint(0, 4)]+String(randint(1, 100))),
-                weights: select
+                name: prompt("Введите название организма: ", ["Бот", "Бактерия", "Микроб", "Кокк", "Прокариот"][randint(0, 4)] + String(randint(1, 100))),
+                weights: select.weights,
+                weights2: select.weights2,
+                hidden:select.hidden
             }
-            let file = new Blob([JSON.stringify(data)], {type: 'application/json'})
+            let file = new Blob([JSON.stringify(data)], { type: 'application/json' })
             //фантомная ссылка для автозагрузки
             var a = document.createElement("a"),
                 url = URL.createObjectURL(file)
             a.href = url
-            a.download = data.name+".json";
+            a.download = data.name + ".json";
             document.body.appendChild(a);
             a.click();
-            setTimeout(function() {
+            setTimeout(function () {
                 document.body.removeChild(a)
                 window.URL.revokeObjectURL(url)
             }, 0)
         }
         //чтение json файла с нейросетью
-        function nload(input){
+        function nload(input) {
             let reader = new FileReader
             console.log(input.files[0])
             reader.readAsText(input.files[0])
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 var rawLog = reader.result;
                 let data = JSON.parse(reader.result)
                 console.log(data)
                 run = false
-                select = data.weights
-                loops:
-                for(let x = 0; x < height; x++){
-                    for(let y = 0; y < width; y++){
-                        if(emap[x][y] == -1){
-                            let creature1 = new creature(x+1, y+1, 1, nextid, 20, data.weights, [0, 0, 0, 0, 1])
-                            console.log(creature1)
-                            creatures.push(creature1)
-                            nextid ++
-                            break loops
+                select = {
+                    weights: data.weights,
+                    weights2: data.weights2
+                }
+                let crcount = prompt("Сколько существ сотворить?")
+                for(let i = 0; i < crcount; i++){
+                    loops:
+                    for (let x = 0; x < height; x++) {
+                        for (let y = 0; y < width; y++) {
+                            if (emap[x][y] == -1) {
+                                let creature1 = new creature(x + 1, y + 1, 1, nextid, 20, data.weights, data.weights2, [0, 0, 0, 0, 1], data.hidden)
+                                console.log(creature1)
+                                creatures.push(creature1)
+                                emap[x][y] = nextid
+                                nextid++
+                                break loops
+                            }
+
                         }
-                        
                     }
                 }
                 event.textContent = `бг создал новое существо ${data.name}`
                 run = true
             };
-            
+
         }
         //сохранение в json файл
-        function save(){
+        function save() {
             let data = {
                 light: light,
-                tickk:tickk,
+                tickk: tickk,
                 time: time,
                 creatures: creatures,
-                emap:emap,
-                world:world,
-                O2:O2,
-                CO2:CO2,
-                nextid:nextid,
-                name: prompt("Введите название планеты: ", ["Bublik", "Baranka", "Ponchik", "Toroid", "Tor", "Sushka", "Taralli"][randint(0, 6)]+String(randint(1, 100)))
+                emap: emap,
+                world: world,
+                O2: O2,
+                CO2: CO2,
+                nextid: nextid,
+                name: prompt("Введите название планеты: ", ["Bublik", "Baranka", "Ponchik", "Toroid", "Tor", "Sushka", "Taralli"][randint(0, 6)] + String(randint(1, 100)))
             }
             console.log(JSON.stringify(data))
-            let file = new Blob([JSON.stringify(data)], {type: 'application/json'})
+            let file = new Blob([JSON.stringify(data)], { type: 'application/json' })
             //фантомная ссылка для автозагрузки
             var a = document.createElement("a"),
                 url = URL.createObjectURL(file)
             a.href = url
-            a.download = data.name+".json";
+            a.download = data.name + ".json";
             document.body.appendChild(a);
             a.click();
-            setTimeout(function() {
+            setTimeout(function () {
                 document.body.removeChild(a)
                 window.URL.revokeObjectURL(url)
             }, 0)
         }
         //чтение json файла
-        function load(input){
+        function load(input) {
             let reader = new FileReader
             console.log(input.files[0])
             reader.readAsText(input.files[0])
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 var rawLog = reader.result;
                 let data = JSON.parse(reader.result)
                 console.log(data)
@@ -862,8 +1074,8 @@
                 tickk = data.tickk
                 time = data.time
                 creatures = []
-                data.creatures.forEach((item)=>{
-                    creatures.push(new creature(item.x, item.y, item.o, item.id, item.energy, item.weights, item.resists))
+                data.creatures.forEach((item) => {
+                    creatures.push(new creature(item.x, item.y, item.o, item.id, item.energy, item.weights, item.weights2, item.resists, item.hidden))
                 })
                 emap = data.emap
                 world = data.world
@@ -872,7 +1084,7 @@
                 nextid = data.nextid
                 run = true
             };
-            
+
         }
         //загрузка из файла
         //данные из адресной строки
@@ -885,5 +1097,4 @@
         start(params['c'], params['s'], params['o'], params['w'], params['o2'], params['co2'], params['calm'])
     </script>
 </body>
-
 </html>
