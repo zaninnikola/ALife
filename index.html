@@ -23,19 +23,22 @@
                 <td id="botinfo">клетка не выбрана</td>
             </tr>
             <tr>
-                <td width="40%">
+                <td width="25%">
                     <div>время:<span id="tick"></span></div>
                     <div>популяция:<span id="population"></span></div>
                     <div>освещенность:<span id="time"></span></div>
                     <div>состав атмосферы| O2:<span id="O2"></span> CO2:<span id="CO2"></span></div>
                     <div>последнее событие:<span id="event"></span></div>
                 </td>
-                <td width="40%">
-                    Файл: <button onclick="save()">сохранить</button><br>
-                    <input type="file" onchange="load(this)" accept="application/json" aria-label="загрузить"><br>
-                    <button onclick="nsave()">сохранить нейросеть</button><br>
+                <td width="25%">
+                    Мир: <button onclick="save()">сохранить</button><br>
+                    <input type="file" onchange="load(this)" accept="application/json" aria-label="загрузить">
                 </td>
-                <td>
+                <td width="25%">
+                    Бот: <button onclick="nsave()">сохранить нейросеть</button><br> 
+                    <input type="file" onchange="nload(this)" accept="application/json" aria-label="загрузить">
+                </td>
+                <td width="25%">
                     отображение: <button onclick="display = 'fancy'">красивое</button><button onclick="display = 'easy'">упрощенное</button>
                 </td>
             </tr>
@@ -775,6 +778,35 @@
                 document.body.removeChild(a)
                 window.URL.revokeObjectURL(url)
             }, 0)
+        }
+        //чтение json файла с нейросетью
+        function nload(input){
+            let reader = new FileReader
+            console.log(input.files[0])
+            reader.readAsText(input.files[0])
+            reader.onload = function(e) {
+                var rawLog = reader.result;
+                let data = JSON.parse(reader.result)
+                console.log(data)
+                run = false
+                select = data.weights
+                loops:
+                for(let x = 0; x < height; x++){
+                    for(let y = 0; y < width; y++){
+                        if(emap[x][y] == -1){
+                            let creature1 = new creature(x+1, y+1, 1, nextid, 20, data.weights, [0, 0, 0, 0, 1])
+                            console.log(creature1)
+                            creatures.push(creature1)
+                            nextid ++
+                            break loops
+                        }
+                        
+                    }
+                }
+                event.textContent = `бг создал новое существо ${data.name}`
+                run = true
+            };
+            
         }
         //сохранение в json файл
         function save(){
