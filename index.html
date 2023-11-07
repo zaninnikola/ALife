@@ -12,7 +12,7 @@
         margin: 0%;
     }
 </style>
-
+<!--to do: y в input нейросети, феромоны, синапс из in в out, инвертированный рандомный нейрон, сравнение геномов с ботом впереди как орган чувств, половое размножение, ресайз как аргумент командной строки-->
 <body>
     <table>
         <td>
@@ -54,6 +54,7 @@
 
 
     </table>
+    <script src="bot.js"></script>
     <script>
         //Сумма всех чисел в массиве
         function sum(mass) {
@@ -80,59 +81,7 @@
         }
         //функция активации https://habr.com/ru/companies/epam_systems/articles/317050/
         const activation_sigmoid = x => 1 / (1 + Math.exp(-x));
-        //кастомные функции для нейронки, но в основе все тот же перцептрон с хабра
-        //обычная функция с сигмоидальной активацией
-        function predict(input, weights) {
-            let non_activated = 0
-            let enabled = 0
-            for (let i = 0; i < input.length; i++) {
-                if (weights[i] != -2) {
-                    non_activated += input[i] * weights[i]
-                    enabled += 1
-                }
-            }
-            if (enabled != 0) {
-                return activation_sigmoid(non_activated / enabled);
-            } else {
-                return 0
-            }
-        }
-        //функция с рандомным выводом
-        function random_predict(input, weights) {
-            let non_activated = 0
-            let enabled = 0
-            for (let i = 0; i < input.length; i++) {
-                if (weights[i] != -2) {
-                    non_activated += input[i] * weights[i]
-                    enabled += 1
-                }
-            }
-            if (enabled != 0) {
-                return getRandomFloat(activation_sigmoid(non_activated / enabled), 1)
-            } else {
-                return getRandomFloat(0, 1)
-            }
-        }
-        //пороговая функция
-        function porog(input, weights) {
-            let non_activated = 0
-            let enabled = 0
-            for (let i = 0; i < input.length; i++) {
-                if (weights[i] != -2) {
-                    non_activated += input[i] * weights[i]
-                    enabled += 1
-                }
-            }
-            if (enabled != 0) {
-                if(non_activated / enabled >= 0 ){
-                    return 1;
-                } else {
-                    return 0
-                }
-            } else {
-                return 0
-            }
-        }
+        
         // Время
         let tickk = 0
         let tickindicator = document.getElementById("tick")
@@ -150,323 +99,6 @@
         let population = document.getElementById("population")
         // отображение генома бота
         let botinfo = document.getElementById("botinfo")
-        // бот
-        class creature {
-            constructor(x, y, o, id, energy, weights, weights2, resists, hidden) {
-                this.x = x
-                this.y = y
-                this.o = o
-                this.id = id
-                this.energy = energy
-                this.weights = weights
-                this.weights2 = weights2
-                this.hidden = hidden
-                this.fillStyle = `rgb(${asum(weights[0]) * 23}, ${asum(weights[1]) * 23}, ${asum(weights[2]) * 23})`
-                this.strokeStyle = `rgb(${sum(weights[5]) * 80}, ${sum(weights[3]) * 80}, ${(sum(weights[6]) + sum(weights[7])) * 80})`
-                this.resists = resists
-                this.last = 'рождение'
-            }
-            // земля под ногами
-            goo(world) {
-                return world[this.x - 1][this.y - 1]
-            }
-
-            // зрение
-            see(emap) {
-                switch (this.o) {
-                    case 1:
-                        if (this.x < height) {
-                            return emap[this.x][this.y - 1]
-                        }
-                        else {
-                            return emap[0][this.y - 1]
-                        }
-                        break
-                    case 2:
-                        if (this.x > 1) {
-                            return emap[this.x - 2][this.y - 1]
-                        }
-                        else {
-                            return emap[height - 1][this.y - 1]
-                        }
-                        break
-                    case 3:
-                        if (this.y < width) {
-                            return emap[this.x - 1][this.y]
-                        }
-                        else {
-                            return emap[this.x - 1][0]
-                        }
-                        break
-                    case 4:
-                        if (this.y > 1) {
-                            return emap[this.x - 1][this.y - 2]
-                        }
-                        else {
-                            return emap[this.x - 1][width - 1]
-                        }
-                        break
-                }
-            }
-            //земля впереди
-            seegoo(world) {
-                switch (this.o) {
-                    case 1:
-                        if (this.x < height) {
-                            return world[this.x][this.y - 1]
-                        }
-                        else {
-                            return world[0][this.y - 1]
-                        }
-                        break
-                    case 2:
-                        if (this.x > 1) {
-                            return world[this.x - 2][this.y - 1]
-                        }
-                        else {
-                            return world[height - 1][this.y - 1]
-                        }
-                        break
-                    case 3:
-                        if (this.y < width) {
-                            return world[this.x - 1][this.y]
-                        }
-                        else {
-                            return world[this.x - 1][0]
-                        }
-                        break
-                    case 4:
-                        if (this.y > 1) {
-                            return world[this.x - 1][this.y - 2]
-                        }
-                        else {
-                            return world[this.x - 1][width - 1]
-                        }
-                        break
-                }
-            }
-            //повороты
-            left() {
-                this.energy -= 0.1
-                switch (this.o) {
-                    case 1:
-                        this.o = 4
-                        break
-                    case 2:
-                        this.o = 3
-                        break
-                    case 3:
-                        this.o = 1
-                        break
-                    case 4:
-                        this.o = 2
-                        break
-                }
-            }
-            right() {
-                this.energy -= 0.1
-                switch (this.o) {
-                    case 4:
-                        this.o = 1
-                        break
-                    case 3:
-                        this.o = 2
-                        break
-                    case 1:
-                        this.o = 3
-                        break
-                    case 2:
-                        this.o = 4
-                        break
-                }
-            }
-            //движение
-            forward(emap) {
-                this.energy -= 0.1
-                if (this.see(emap) == -1) {
-                    switch (this.o) {
-                        case 1:
-                            if (this.x < height) {
-                                this.x += 1
-                            }
-                            else {
-                                this.x = 1
-                            }
-                            break
-                        case 2:
-                            if (this.x > 1) {
-                                this.x -= 1
-                            }
-                            else {
-                                this.x = height
-                            }
-                            break
-                        case 3:
-                            if (this.y < width) {
-                                this.y += 1
-                            }
-                            else {
-                                this.y = 1
-                            }
-                            break
-                        case 4:
-                            if (this.y > 1) {
-                                this.y -= 1
-                            }
-                            else {
-                                this.y = width
-                            }
-                            break
-
-                    }
-                }
-            }
-            //фотосинтез
-            photo(world) {
-                let goo = this.goo(world)
-                if (goo[2] >= 10 && CO2 >= 0.00001) {
-                    world[this.x - 1][this.y - 1][2] -= 10
-                    this.energy += 2.5 * light
-                    O2 = Math.min(O2 + 0.00001, 1)
-                    CO2 -= 0.00001
-                    this.last = 'фотосинтез'
-                }
-            }
-            //хемосинтез
-            chemo(world) {
-                let goo = this.goo(world)
-                if (goo[0] >= 10 && O2 >= 0.00001) {
-                    world[this.x - 1][this.y - 1][0] -= 10
-                    this.energy += 2.5
-                    CO2 = Math.min(CO2 + 0.00001, 1)
-                    O2 -= 0.00001
-                    this.last = 'хемосинтез'
-                }
-            }
-            //разложение
-            detrit(world) {
-                let goo = this.goo(world)
-                if (goo[1] >= 10 && O2 >= 0.00001) {
-                    world[this.x - 1][this.y - 1][1] -= 10
-                    world[this.x - 1][this.y - 1][0] = Math.min(world[this.x - 1][this.y - 1][0] + 5, 255)
-                    world[this.x - 1][this.y - 1][2] = Math.min(world[this.x - 1][this.y - 1][2] + 5, 255)
-                    this.energy += 2.5
-                    CO2 = Math.min(CO2 + 0.00001, 1)
-                    O2 -= 0.00001
-                    this.last = 'разложение органики'
-                }
-            }
-            //охота
-            ambush(emap, creatures) {
-                if (this.see(emap) != -1 && typeof (this.see(emap))) {
-                    for (let i = 0; i < creatures.length; i++) {
-                        if (creatures[i].id == this.see(emap)) {
-                            this.energy += creatures[i].energy / 2
-                            delete creatures[i]
-                            creatures.splice(i, 1)
-                            this.last = 'съел товарища'
-                            break
-                        }
-                    }
-
-                }
-            }
-            //размножение
-            mitos(emap, id) {
-                if (this.see(emap) == -1) {
-                    this.energy /= 2
-                    //мутация резистов
-                    let newresists
-                    let value = randint(0, 3)
-                    if (value != 0) {
-                        newresists = this.resists.slice(0)
-                    }
-                    else {
-                        newresists = [0, 0, 0, 0, 0]
-                        newresists[randint(0, 4)] = 1
-                    }
-
-                    //копия нейросети
-                    let newweights = []
-                    for (let i = 0; i < 8; i++) {
-                        let subweight = this.weights[i].slice(0)
-                        newweights.push(subweight)
-                    }
-                    let newweights2 = []
-                    for (let i = 0; i < 8; i++) {
-                        let subweight = this.weights2[i].slice(0)
-                        newweights2.push(subweight)
-                    }
-                    //мутация нейросети
-                    let rand = randint(0, 2)
-                    let hidden = this.hidden.slice(0)
-                    if(rand == 1){
-                        let x = randint(0, 7)
-                        let y = randint(0, 10)
-                        let randweight = getRandomFloat(-1, 1)
-                        newweights[x][y] = [randweight, randweight, -2][randint(0, 2)]//отрицательные веса и отключенные синапсы появляются только в ходе эволюции
-                    } else if(rand == 0){
-                        let x = randint(0, 7)
-                        let y = randint(0, 7)
-                        let randweight = getRandomFloat(-1, 1)
-                        newweights2[x][y] = [randweight, randweight, -2][randint(0, 2)]//скрытый слой также мутирует только в ходе эволюции
-                    } else{
-                        hidden[randint(0,7)] = ["s", "p", "r"][randint(0,2)]
-                    }
-                    //создаем существо впереди себя
-                    switch (this.o) {
-                        case 1:
-                            return new creature(this.x % height + 1, this.y, randint(1, 4), id, this.energy, newweights, newweights2, newresists, hidden)
-                            break
-                        case 2:
-                            if (this.x > 1) {
-                                return new creature(this.x - 1, this.y, randint(1, 4), id, this.energy, newweights, newweights2, newresists, hidden)
-                            }
-                            else {
-                                return new creature(height, this.y, randint(1, 4), id, this.energy, newweights, newweights2, newresists, hidden)
-                            }
-                            break
-                        case 3:
-                            return new creature(this.x, this.y % width + 1, randint(1, 4), id, this.energy, newweights, newweights2, newresists, hidden)
-                            break
-                        case 4:
-                            if (this.y > 1) {
-                                return new creature(this.x, this.y - 1, randint(1, 4), id, this.energy, newweights, newweights2, newresists, hidden)
-                            }
-                            else {
-                                return new creature(this.x, width - 1, randint(1, 4), id, this.energy, newweights, newweights2, newresists, hidden)
-                            }
-                            break
-                    }
-                }
-            }
-            //запуск нейросети
-            neuro(world, emap) {
-                let prediction = []
-                let prediction2 = []
-                let goo = this.goo(world)
-                let seegoo = this.seegoo(world)
-                let sensors = [Number(this.see(emap) != -1 && this.see(emap)!="a"), goo[0] / 256, goo[1] / 256, goo[2] / 256,this.energy / 20, light / 2, seegoo[0] / 256, seegoo[1] / 256, seegoo[2] / 256, O2, CO2]
-                for (let i = 0; i < 8; i++) {
-                    prediction.push(predict(sensors, this.weights[i]))
-                }
-                for (let i = 0; i < 8; i++) {
-                    switch(this.hidden[i]){
-                        case "s":
-                            prediction2.push(predict(prediction, this.weights2[i]))
-                            break
-                        case "p":
-                            prediction2.push(porog(prediction, this.weights2[i]))
-                            break
-                        case "r":
-                            prediction2.push(random_predict(prediction, this.weights2[i]))
-                            break
-                    }
-                    
-                }
-                return prediction2.indexOf(Math.max.apply(null, prediction2))
-            }
-        }
         //canvas
         var example = document.getElementById("example"),
             ctx = example.getContext('2d');
@@ -478,7 +110,7 @@
         //другие глобальные переменные
         let colors = ["white", "red", "lime", "blue", "yellow", "pink", "crimson", "green", "navy", "cyan", "silver"]
         let colors2 = ["white", "white", "silver", "yellow", "violet", "crimson", "lime", "red"]
-        var emap = [], world = [], nextid = 0, creatures = [], display = "easy", select = [], inter
+        var emap = [], world = [], nextid = 0, creatures = [], display = "easy", select = [], inter, temps = []
         //дисплей генома
         function genom(weights) {
             let output = ""
@@ -683,7 +315,7 @@
             for (let i = 0; i < height; i++) {
                 for (let j = 0; j < width; j++) {
                     world[i][j][2] = Math.max(world[i][j][2] - randint(20, 40), 0)
-                    light = 2
+                    light *= 2
                 }
             }
         }
@@ -759,7 +391,7 @@
                 if (time >= 2 || time <= 0) {
                     daynight = !daynight
                 }
-                light = Math.round(time * 1000) / 1000
+                light = Math.round(time*(Math.round(Math.cos(tickk/800)/10)/2+1) * 2000) / 1000
                 //Рисуем мир
                 for (let x = 0; x < height; x++) {
                     for (let y = 0; y < width; y++) {
@@ -843,10 +475,12 @@
                     for (let a = 0; a < 3; a++) {
                         currbot.energy -= (Math.max(goo[a] - 200, 0) / 55) * (1 - currbot.resists[a])
                     }
-                    //кислородное отравление и отравление углекислым газом и старение
-                    currbot.energy -= (0.002 * Math.max(O2 - 0.5, 0) * (1 - currbot.resists[3]) + 0.1) + (0.002 * Math.max(CO2 - 0.5, 0) * (1 - currbot.resists[4]) + 0.1) + 0.05
+                    //кислородное отравление и отравление углекислым газом
+                    currbot.energy -= ((0.002 * Math.max(O2 - 0.5, 0) * (1 - currbot.resists[3]) + 0.1) + (0.002 * Math.max(CO2 - 0.5, 0) * (1 - currbot.resists[4]) + 0.1) + 0.05)/2
                     currbot.energy = Math.min(currbot.energy, 20)
-                    if (currbot.energy <= 0) {
+                    //старение
+                    currbot.old -= 1
+                    if (currbot.energy <= 0 || currbot.old == 0) {
                         world[currbot.x - 1][currbot.y - 1][1] = Math.min(world[currbot.x - 1][currbot.y - 1][1] + randint(5, 25), 255)
                         delete currbot
                         delete creatures[bots]
@@ -941,6 +575,19 @@
                 }
                 world.push(line)
             }
+            //создаем широты
+            let zone = 0
+            for (let i = 0; i < width; i++){
+                if(i < width/2){
+                    zone+=4/width
+                } else {
+                    zone -= 4/width
+                }
+                if(zone <= 0){
+                    zone = 4/width
+                }
+                temps.push(zone)
+            }
             //Создаем существ
             let weights2 = [
                 [1, -2, -2, -2, -2, -2, -2, -2],
@@ -965,7 +612,7 @@
                 //создаем существо
                 let resists = [0, 0, 0, 0, 0]
                 resists[randint(0, 4)] = 1
-                creatures.push(new creature(randint(1, height), randint(1, width), randint(1, 4), nextid, 20, weights,weights2, resists, ['s', 's', 's', 's', 's', 's', 's', 's']))
+                creatures.push(new creature(randint(1, height), randint(1, width), randint(1, 4), nextid, 20, weights,weights2, resists, ['s', 's', 's', 's', 's', 's', 's', 's'], randint(200, 400)))
                 nextid++
             }
             inter = setInterval(tick, 50)
@@ -981,7 +628,8 @@
                 name: prompt("Введите название организма: ", ["Бот", "Бактерия", "Микроб", "Кокк", "Прокариот"][randint(0, 4)] + String(randint(1, 100))),
                 weights: select.weights,
                 weights2: select.weights2,
-                hidden:select.hidden
+                hidden:select.hidden,
+                rold:select.rold
             }
             let file = new Blob([JSON.stringify(data)], { type: 'application/json' })
             //фантомная ссылка для автозагрузки
@@ -1016,7 +664,7 @@
                     for (let x = 0; x < height; x++) {
                         for (let y = 0; y < width; y++) {
                             if (emap[x][y] == -1) {
-                                let creature1 = new creature(x + 1, y + 1, 1, nextid, 20, data.weights, data.weights2, [0, 0, 0, 0, 1], data.hidden)
+                                let creature1 = new creature(x + 1, y + 1, 1, nextid, 20, data.weights, data.weights2, [0, 0, 0, 0, 1], data.hidden, data.rold)
                                 console.log(creature1)
                                 creatures.push(creature1)
                                 emap[x][y] = nextid
@@ -1035,6 +683,7 @@
         //сохранение в json файл
         function save() {
             let data = {
+                temps: temps,
                 light: light,
                 tickk: tickk,
                 time: time,
@@ -1082,6 +731,7 @@
                 O2 = data.O2
                 CO2 = data.CO2
                 nextid = data.nextid
+                temps = data.temps
                 run = true
             };
 
