@@ -219,7 +219,7 @@ class creature {
             }
             //создаем существо впереди себя
             return new creature(rotations[this.o](this.x, this.y).x, rotations[this.o](this.x, this.y).y, randint(1, 4), id,
-                this.energy, newweights, newweights2, newresists, hidden, [this.rold, this.rold, this.rold, randint(100, 500)][randint[0, 3]])
+                this.energy, newweights, newweights2, newresists, hidden, [this.rold, this.rold, this.rold, randint(50, 500)][randint(0, 3)])
         }
     }
     //запуск нейросети
@@ -243,8 +243,10 @@ class creature {
 }
 //нейрон для скрытого слоя
 class neuron {
-    constructor(type, weights) {
+    constructor(type, weights, botid) {
         this.weights = weights
+        this.type = type
+        this.botid = botid
     }
     predict() {
 

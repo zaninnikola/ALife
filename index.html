@@ -183,10 +183,11 @@
                     select = {
                         weights: bot.weights,
                         weights2: bot.weights2,
-                        hidden: bot.hidden
+                        hidden: bot.hidden,
+                        rold: bot.rold
                     }
                     loadc(select)
-                    botinfo.innerHTML += resists[bot.resists.indexOf(1)] + ".<br>Последнее действие:" + bot.last + ".<br>" + String(bot.energy)
+                    botinfo.innerHTML += resists[bot.resists.indexOf(1)] + ".<br>Последнее действие:" + bot.last + ".<br>Энергия: " + String(bot.energy)+ ".<br>Осталось жить: " + String(bot.old)
                 }
             })
 
@@ -542,7 +543,15 @@
             }
         }
         //начинаем
-        function start(crcount, r, g, b, o2, co2, cal) {
+        function start(crcount, r, g, b, o2, co2, cal, w, h) {
+            if(w){
+                width = w
+                example.setAttribute("height", `${width*12.5}`)
+            }
+            if(h){
+                height = h
+                example.setAttribute("width", `${height*12.5}`)
+            }
             emap = []
             world = []
             nextid = 0
@@ -613,6 +622,7 @@
                 let resists = [0, 0, 0, 0, 0]
                 resists[randint(0, 4)] = 1
                 creatures.push(new creature(randint(1, height), randint(1, width), randint(1, 4), nextid, 20, weights,weights2, resists, ['s', 's', 's', 's', 's', 's', 's', 's'], randint(200, 400)))
+                console.log(creatures[0].old)
                 nextid++
             }
             inter = setInterval(tick, 50)
@@ -728,6 +738,11 @@
                 })
                 emap = data.emap
                 world = data.world
+                width = world[0].length
+                height = world.length
+                console.log(width, height)
+                example.setAttribute("height", `${width*12.5}`)
+                example.setAttribute("width", `${height*12.5}`)
                 O2 = data.O2
                 CO2 = data.CO2
                 nextid = data.nextid
@@ -744,7 +759,7 @@
             params[key] = p;
         });
         console.log(params)
-        start(params['c'], params['s'], params['o'], params['w'], params['o2'], params['co2'], params['calm'])
+        start(params['c'], params['s'], params['o'], params['w'], params['o2'], params['co2'], params['calm'], params['w'], params['h'])
     </script>
 </body>
 </html>
